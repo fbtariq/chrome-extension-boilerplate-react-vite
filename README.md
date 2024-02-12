@@ -285,7 +285,7 @@ export default function CustomChakraProvider({ children, shadowRootId }: CustomC
   }, []);
 
   return (
-    <ThemeProvider theme={theme} cssVarsRoot={`#${shadowRootId}`}>
+    <ThemeProvider theme={{ ...theme, config: { ...theme.config, colorMode } }} cssVarsRoot={`#${shadowRootId}`}>
       <ColorModeScript initialColorMode="system" />
       <ColorModeContext.Provider value={{ colorMode, setColorMode, toggleColorMode }}>
         <CSSReset />
@@ -331,10 +331,10 @@ export default function EmotionCacheProvider({ children, rootId }: { rootId: str
 
 </details>
 
-**5. Fix the `src/pages/content/index.tsx` file:**
+**5. Fix the `src/pages/content/ui/root.tsx` file:**
 
 <details>
-<summary>src/pages/content/index.tsx</summary>
+<summary>src/pages/content/ui/root.tsx</summary>
 
 ```tsx
 import CustomChakraProvider from '@pages/content/ui/CustomChakraProvider';
@@ -480,6 +480,8 @@ manifest.json
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/tngflx"><img src="https://avatars.githubusercontent.com/u/36429783?v=4?s=50" width="50px;" alt="Hiverse"/><br /><sub><b>Hiverse</b></sub></a><br /><a href="#bug-tngflx" title="Bug reports">🐛</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/rosendolu"><img src="https://avatars.githubusercontent.com/u/42633099?v=4?s=50" width="50px;" alt="rosendolu"/><br /><sub><b>rosendolu</b></sub></a><br /><a href="#code-rosendolu" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="http://devkitty.app"><img src="https://avatars.githubusercontent.com/u/6418221?v=4?s=50" width="50px;" alt="Egor Stronhin"/><br /><sub><b>Egor Stronhin</b></sub></a><br /><a href="#doc-egor-xyz" title="Documentation">📖</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/webLiang"><img src="https://avatars.githubusercontent.com/u/38065991?v=4?s=50" width="50px;" alt="webLiang"/><br /><sub><b>webLiang</b></sub></a><br /><a href="#code-webLiang" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://adamspiers.org"><img src="https://avatars.githubusercontent.com/u/100738?v=4?s=50" width="50px;" alt="Adam Spiers"/><br /><sub><b>Adam Spiers</b></sub></a><br /><a href="#bug-aspiers" title="Bug reports">🐛</a></td>
     </tr>
   </tbody>
 </table>
