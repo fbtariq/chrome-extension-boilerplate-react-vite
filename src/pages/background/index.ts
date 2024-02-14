@@ -1,5 +1,6 @@
 import reloadOnUpdate from 'virtual:reload-on-update-in-background-script';
 import 'webextension-polyfill';
+import { createClient } from "@supabase/supabase-js";
 
 reloadOnUpdate('pages/background');
 
@@ -11,72 +12,99 @@ reloadOnUpdate('pages/content/style.scss');
 
 console.log('background loaded');
 
-chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
-    switch (request.action) {
-        case "signInWithGoogle": {
+const supabaseUrl = "https://kurzppsqguyfqsceuuaw.supabase.co";
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1cnpwcHNxZ3V5ZnFzY2V1dWF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDc0MjkxNTQsImV4cCI6MjAyMzAwNTE1NH0.tWvW1bBMOZVpWFV7mfxxdHg0BeF9NZeqL_cmyg9CWMQ";
 
-            // remove any old listener if exists
-            chrome.tabs.onUpdated.removeListener(setTokens)
-            const url = request.payload.url;
-            alert(`url: ${url}`);
-
-            // create new tab with that url
-            chrome.tabs.create({ url: url, active: true }, (tab) => {
-                // add listener to that url and watch for access_token and refresh_token query string params
-                chrome.tabs.onUpdated.addListener(setTokens)
-                sendResponse(request.action + " executed")
-            })
-
-            break
-        }
-
-        default:
-            break
+// add tab listener when background script starts
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    if (changeInfo.url?.startsWith(chrome.identity.getRedirectURL())) {
+        finishUserOAuth(changeInfo.url);
     }
+});
 
-    return true
-})
+/**
+ * Method used to finish OAuth callback for a user authentication.
+ */
+async function finishUserOAuth(url: string) {
+    try {
+        console.log(`handling user OAuth callback ...`);
+        const supabase = createClient(supabaseUrl, supabaseKey);
 
-const setTokens = async (
-    tabId: number,
-    changeInfo: chrome.tabs.TabChangeInfo,
-    tab: chrome.tabs.Tab
-) => {
-
-    // once the tab is loaded
-    if (tab.status === "complete") {
-        if (!tab.url) return
-        const url = new URL(tab.url)
-
-        alert("url");
-        alert(url);
-
-        // at this point user is logged-in to the web app
-        // url should look like this: https://my.webapp.com/#access_token=zI1NiIsInR5c&expires_in=3600&provider_token=ya29.a0AVelGEwL6L&refresh_token=GEBzW2vz0q0s2pww&token_type=bearer
-        // parse access_token and refresh_token from query string params
-        if (url.origin /*=== "https://my.webapp.com"*/) {
-            alert(url.origin)
-            const params = new URL(url.href).searchParams;
-            const accessToken = params.get("accessToken");
-            const refreshToken = params.get("refreshToken");
-
-            if (accessToken && refreshToken) {
-                if (!tab.id) return
-
-                // we can close that tab now
-                await chrome.tabs.remove(tab.id)
-
-                // store access_token and refresh_token in storage as these will be used to authenticate user in chrome extension
-                await chrome.storage.sync.set({
-                    "gauthAccessToken": accessToken
-                })
-                await chrome.storage.sync.set({
-                    "gauthRefreshToken": refreshToken
-                })
-
-                // remove tab listener as tokens are set
-                chrome.tabs.onUpdated.removeListener(setTokens)
-            }
+        // extract tokens from hash
+        const hashMap = parseUrlHash(url);
+        const access_token = hashMap.get('access_token');
+        const refresh_token = hashMap.get('refresh_token');
+        if (!access_token || !refresh_token) {
+            throw new Error(`no supabase tokens found in URL hash`);
         }
+
+        // check if they work
+        const { data, error } = await supabase.auth.setSession({
+            access_token,
+            refresh_token,
+        });
+        if (error) throw error;
+        console.log("data");
+        console.log(data);
+
+        // persist session to storage
+        await chrome.storage.local.set({ session: data.session });
+
+        // sleep for 4 seconds
+        await new Promise((resolve) => setTimeout(resolve, 4000));
+        // finally redirect to a post oauth page
+        chrome.tabs.update({ url: "https://myapp.com/user-login-success/" });
+
+        console.log(`finished handling user OAuth callback`);
+    } catch (error) {
+        console.error(error);
     }
 }
+
+/**
+ * Helper method used to parse the hash of a redirect URL.
+ */
+function parseUrlHash(url: string) {
+    const hashParts = new URL(url).hash.slice(1).split('&');
+    const hashMap = new Map(
+        hashParts.map((part) => {
+            const [name, value] = part.split('=');
+            return [name, value];
+        })
+    );
+
+    return hashMap;
+}
+
+// add listener for when the extension is installed
+chrome.runtime.onInstalled.addListener(() => {
+    console.log('onInstalled ...');
+    // open the options page
+    chrome.runtime.openOptionsPage();
+});
+
+// add listener for when the extension is updated
+chrome.runtime.onUpdateAvailable.addListener(() => {
+    console.log('onUpdateAvailable ...');
+    // reload the extension
+    chrome.runtime.reload();
+});
+
+// add listener for when the navigate message is received
+chrome.runtime.onMessage.addListener((message, sender) => {
+    console.log('onMessage ...');
+    if (message.type === 'navigate') {
+        console.log(`navigating to ${message.path} ...`);
+        chrome.tabs.update(sender.tab.id, { url: message.path });
+    }
+});
+
+// add listener for when the session message is received
+chrome.runtime.onMessage.addListener((message) => {
+    console.log('onMessage ...');
+    if (message.type === 'session') {
+        console.log(`received session ...`);
+        console.log(message.session);
+    }
+});
+

@@ -4,7 +4,7 @@ import { signInWithGoogle } from "./index";
 export default function Popup() {
   return (
     <div>
-      <Button onClick={signInWithGoogle}>Sign in with Google</Button>
+      <Button onClick={signInWithGoogle}>Sign in with Googlee</Button>
     </div>
   );
 }
