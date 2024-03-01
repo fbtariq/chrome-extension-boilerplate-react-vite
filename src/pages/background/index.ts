@@ -53,7 +53,22 @@ async function finishUserOAuth(url: string) {
         // sleep for 4 seconds
         await new Promise((resolve) => setTimeout(resolve, 4000));
         // finally redirect to a post oauth page
-        chrome.tabs.update({ url: "https://myapp.com/user-login-success/" });
+
+        // create a POST API request with the access token and refresh token to localhost:3000/api/auth/extension
+        const response = await fetch('http://localhost:3000/api/auth/extension', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                access_token,
+                refresh_token,
+            }),
+        });
+        console.log("response");
+        console.log(response);
+
+        chrome.tabs.update({ url: "http://localhost:3000/dashboard" });
 
         console.log(`finished handling user OAuth callback`);
     } catch (error) {

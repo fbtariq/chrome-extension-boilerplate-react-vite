@@ -16,6 +16,7 @@ export const supabase = createClient(
 
 // get auth url
 export async function signInWithGoogle() {
+  console.log(chrome.identity);
   console.log(chrome.identity.getRedirectURL());
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
