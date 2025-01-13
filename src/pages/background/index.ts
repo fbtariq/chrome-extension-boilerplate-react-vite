@@ -44,8 +44,6 @@ async function finishUserOAuth(url: string) {
             refresh_token,
         });
         if (error) throw error;
-        console.log("data");
-        console.log(data);
 
         // persist session to storage
         await chrome.storage.local.set({ session: data.session });
@@ -55,7 +53,7 @@ async function finishUserOAuth(url: string) {
         // finally redirect to a post oauth page
 
         // create a POST API request with the access token and refresh token to localhost:3000/api/auth/extension
-        const response = await fetch('http://localhost:3000/api/auth/extension', {
+        await fetch('http://localhost:3000/api/auth/extension', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -65,8 +63,17 @@ async function finishUserOAuth(url: string) {
                 refresh_token,
             }),
         });
-        console.log("response");
-        console.log(response);
+
+        await fetch('https://resumify.ai/api/auth/extension', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                access_token,
+                refresh_token,
+            }),
+        });
 
         chrome.tabs.update({ url: "http://localhost:3000/dashboard" });
 
